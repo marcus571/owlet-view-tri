@@ -143,7 +143,12 @@ const lv_img_dsc_t bolt = {
     .data = bolt_map,
 };
 
-/* ==================== 大电池充电闪电 (12×17，自带白边) ==================== */
+/* ==================== 大电池充电闪电 (12×17，自带白边) ====================
+ *
+ * 语义与其它图相反：本图位值 0 = 闪电前景，位值 1 = 白边背景。
+ *   非 inverted: index 0 = 黑（闪电），index 1 = 白（白边）
+ *   inverted    : index 0 = 白（闪电），index 1 = 黑（白边）
+ */
 #ifndef LV_ATTRIBUTE_IMG_BOLT_LARGE
 #define LV_ATTRIBUTE_IMG_BOLT_LARGE
 #endif
@@ -151,11 +156,11 @@ const lv_img_dsc_t bolt = {
 const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_BOLT_LARGE uint8_t
     bolt_large_map[] = {
 #if CONFIG_NICE_VIEW_WIDGET_INVERTED
-    0x00, 0x00, 0x00, 0xff, /*Color of index 0*/
-    0xff, 0xff, 0xff, 0xff, /*Color of index 1*/
+    0xff, 0xff, 0xff, 0xff, /*Color of index 0 - 闪电白*/
+    0x00, 0x00, 0x00, 0xff, /*Color of index 1 - 白边黑*/
 #else
-    0xff, 0xff, 0xff, 0xff, /*Color of index 0*/
-    0x00, 0x00, 0x00, 0xff, /*Color of index 1*/
+    0x00, 0x00, 0x00, 0xff, /*Color of index 0 - 闪电黑*/
+    0xff, 0xff, 0xff, 0xff, /*Color of index 1 - 白边白*/
 #endif
 
   0xf8, 0x70,
