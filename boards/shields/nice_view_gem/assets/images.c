@@ -143,13 +143,11 @@ const lv_img_dsc_t bolt = {
     .data = bolt_map,
 };
 
-/* ==================== 大电池充电闪电 (12×17，纯闪电 + 透明背景) ====================
+/* ==================== 大电池充电闪电 (8×15，纯闪电 + 透明背景) ====================
  *
  * 语义：位值 1 = 闪电前景，位值 0 = 透明背景。
  *   非 inverted: index 0 = 透明，index 1 = 黑（闪电）
  *   inverted    : index 0 = 透明，index 1 = 白（闪电）
- *
- * 透明背景使闪电绘制时不覆盖电池内部填充，无需挖空。
  */
 #ifndef LV_ATTRIBUTE_IMG_BOLT_LARGE
 #define LV_ATTRIBUTE_IMG_BOLT_LARGE
@@ -165,32 +163,30 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_BOLT_LARG
     0x00, 0x00, 0x00, 0xff, /*Color of index 1 - 黑色闪电*/
 #endif
 
-  0x00, 0x00,
-  0x07, 0x80,
-  0x0f, 0x80,
-  0x0f, 0x80,
-  0x1f, 0x00,
-  0x1f, 0x00,
-  0x3e, 0x00,
-  0x3f, 0xc0,
-  0x3f, 0xc0,
-  0x3f, 0xc0,
-  0x0f, 0x80,
-  0x0f, 0x80,
-  0x0f, 0x00,
-  0x07, 0x00,
-  0x02, 0x00,
-  0x02, 0x00,
-  0x00, 0x00,
+  0x1e,
+  0x3e,
+  0x3e,
+  0x7c,
+  0x7c,
+  0xf8,
+  0xff,
+  0xff,
+  0xff,
+  0x3e,
+  0x3e,
+  0x3c,
+  0x1c,
+  0x08,
+  0x08,
 };
 
 const lv_img_dsc_t bolt_large = {
     .header.cf = LV_IMG_CF_INDEXED_1BIT,
     .header.always_zero = 0,
     .header.reserved = 0,
-    .header.w = 12,
-    .header.h = 17,
-    .data_size = 42,
+    .header.w = 8,
+    .header.h = 15,
+    .data_size = 23,
     .data = bolt_large_map,
 };
 
@@ -333,7 +329,11 @@ const lv_img_dsc_t battery = {
     .data = battery_map,
 };
 
-/* ==================== 电池内部棋盘格填充 mask (新 UI - 左栏，20×38) ==================== */
+/* ==================== 电池内部棋盘格填充 mask (新 UI - 左栏，20×38) ====================
+ *
+ * 2026-11-07 起电池改用实心填充，本 mask 不再被 battery.c 引用。
+ * 保留在 images.c 中，供未来如需恢复点阵/纹理填充时复用。
+ */
 #ifndef LV_ATTRIBUTE_IMG_BATTERY_MASK
 #define LV_ATTRIBUTE_IMG_BATTERY_MASK
 #endif
