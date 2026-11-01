@@ -4,17 +4,9 @@
 #include <lvgl.h>
 #include <zmk/endpoints.h>
 
-#define SCREEN_WIDTH 68
-#define SCREEN_HEIGHT 160
-
 /* 单 canvas 尺寸（横屏） */
 #define SCREEN_CANVAS_W 160
 #define SCREEN_CANVAS_H 68
-
-/* 旧双 canvas 遗留，保留供潜在兼容 */
-#define BUFFER_SIZE 68
-#define BUFFER_OFFSET_MIDDLE -44
-#define BUFFER_OFFSET_BOTTOM -129
 
 #define LVGL_BACKGROUND                                                                            \
     IS_ENABLED(CONFIG_NICE_VIEW_WIDGET_INVERTED) ? lv_color_black() : lv_color_white()
@@ -30,16 +22,12 @@ struct status_state {
     bool active_profile_connected;
     bool active_profile_bonded;
     uint8_t layer_index;
-    uint32_t layer_mask; /* 新增：当前激活层的位掩码 */
-    const char *layer_label;
-    uint8_t wpm[10];
+    uint32_t layer_mask;
 #else
     bool connected;
 #endif
 };
 
-void to_uppercase(char *str);
-void rotate_canvas(lv_obj_t *canvas, lv_color_t cbuf[]);
 void fill_background(lv_obj_t *canvas);
 void init_rect_dsc(lv_draw_rect_dsc_t *rect_dsc, lv_color_t bg_color);
 void init_line_dsc(lv_draw_line_dsc_t *line_dsc, lv_color_t color, uint8_t width);
