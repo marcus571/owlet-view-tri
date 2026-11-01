@@ -6,8 +6,11 @@
  *   电池轮廓        (16, 4)      24×40
  *   内部可填充区    (18, 9)..(37, 41)  共 20×33
  *   battery_mask    (18, 10)..(37, 41) 共 20×32（底部对齐，顶部 Y=9 留 1 行）
- *   百分比文字      (4, 46) 宽 48，LV_TEXT_ALIGN_CENTER 自动居中
+ *   百分比文字      (4, 52) 宽 48，LV_TEXT_ALIGN_CENTER 自动居中
  *   充电闪电        电池内部居中，先挖背景再叠加
+ *
+ * 2026-11-07 修改：
+ *   百分比文字下移 6px（46 → 52），更靠近屏幕底部。
  *
  * TODO: 大闪电 bolt_large 待提供，暂时用现有小 bolt (5×9) 占位。
  */
@@ -34,7 +37,7 @@ LV_IMG_DECLARE(bolt); /* TODO: 替换为 bolt_large */
 
 /* 百分比文字 */
 #define PCT_X         4
-#define PCT_Y         46
+#define PCT_Y         52
 #define PCT_W         48
 
 /* 1-bit indexed 子 mask：palette 8 字节 + 位图行 */
