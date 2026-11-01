@@ -78,7 +78,8 @@ static struct battery_status_state battery_status_get_state(const zmk_event_t *e
         .level = 56, /* TODO(max17048): 临时 mock，用于观察 56% 填充效果 */
         /* .level = (ev != NULL) ? ev->state_of_charge : zmk_battery_state_of_charge(), */
 #if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
-        .usb_present = zmk_usb_is_powered(),
+        /* .usb_present = zmk_usb_is_powered(), */
+        .usb_present = true,
 #endif
     };
 }
