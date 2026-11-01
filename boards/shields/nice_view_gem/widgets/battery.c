@@ -2,15 +2,10 @@
 /*
  * battery.c — 左栏：大电池轮廓 + 实心填充 + 左侧充电闪电 + 百分比文字
  *
- * 屏幕布局（160×68 横屏，左栏 X=4..51）：
- *   电池轮廓        (16, 4)      24×45
- *   实心填充区      (19, 10)..(36, 45)  宽 18，高 36（与内轮廓各留 1px）
- *   充电闪电        8×15，水平居中于 X 4..15 区域，垂直居中于电池
- *   百分比文字      (4, 52) 宽 48，LV_TEXT_ALIGN_CENTER 自动居中
- *
- * 2026-11-07 修改：
- *   - bolt_large 尺寸 12×17 → 8×15
- *   - 闪电位置改为自动居中于「左栏起点 → 电池左边界」区域和电池高度
+ * 2026-11-08 修改：
+ *   - 电池图宽度 24→20，需要重新居中
+ *   - 电池位置 X 16→18，实心填充 X 19→21、宽 18→14
+ *   - 闪电位置利用 BOLT_AREA_RIGHT 自动调整居中
  */
 
 #include <zephyr/kernel.h>
@@ -24,18 +19,18 @@ LV_IMG_DECLARE(battery);
 LV_IMG_DECLARE(bolt_large);
 
 /* 电池图 */
-#define BATTERY_X     16
+#define BATTERY_X     18
 #define BATTERY_Y     4
 #define BATTERY_H     45
 
 /* 实心填充区（电池内轮廓再内缩 1px） */
-#define FILL_X        19
-#define FILL_W        18
+#define FILL_X        21
+#define FILL_W        14
 #define FILL_TOP      10
 #define FILL_BOTTOM   45
 #define FILL_H_MAX    36
 
-/* 闪电所在区域：左栏起点 X=4 到电池左边界 X=16 */
+/* 闪电所在区域：左栏起点 X=4 到电池左边界 X=18 */
 #define BOLT_AREA_LEFT   4
 #define BOLT_AREA_RIGHT  BATTERY_X
 
