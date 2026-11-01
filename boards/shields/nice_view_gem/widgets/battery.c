@@ -7,14 +7,15 @@
  *   内部可填充区    (18, 9)..(37, 46)  共 20×38
  *   battery_mask    (18, 9)..(37, 46)  共 20×38（与内部完全匹配）
  *   百分比文字      (4, 52) 宽 48，LV_TEXT_ALIGN_CENTER 自动居中
- *   充电闪电        电池内部居中，先挖背景再叠加
+ *   充电闪电        bolt_large 12×17，自带白边，直接叠加于电池内部居中
  *
  * 2026-11-07 修改：
- *   - battery 尺寸 24×42 → 24×45
- *   - battery_mask 尺寸 20×35 → 20×38
- *   - FILL_BOTTOM 41 → 46，FILL_H_MAX 33 → 38
+ *   - 闪电由小 bolt (5×9) 换为 bolt_large (12×17)
+ *   - bolt_large 自带白边，去掉“先挖背景矩形”逻辑，直接叠加
  *
- * TODO: 大闪电 bolt_large 待提供，暂时用现有小 bolt (5×9) 占位。
+ * bolt 闪电居中坐标（自动计算）：
+ *   X = 18 + (20-12)/2 = 22，占 X 22..33（中心 28 ✓）
+ *   Y = 9 + (38-17)/2 = 19，占 Y 19..35（中心 27 ✓）
  */
 
 #include <zephyr/kernel.h>
@@ -26,7 +27,7 @@
 
 LV_IMG_DECLARE(battery);
 LV_IMG_DECLARE(battery_mask);
-LV_IMG_DECLARE(bolt); /* TODO: 替换为 bolt_large */
+LV_IMG_DECLARE(bolt_large);
 
 /* 电池图与内部填充区 */
 #define BATTERY_X     16
@@ -94,20 +95,15 @@ static void draw_battery_fill(lv_obj_t *canvas, uint8_t level) {
 }
 
 static void draw_battery_charging(lv_obj_t *canvas) {
-    int bolt_w = bolt.header.w;
-    int bolt_h = bolt.header.h;
+    int bolt_w = bolt_large.header.w;
+    int bolt_h = bolt_large.header.h;
     int bolt_x = FILL_X + (FILL_W - bolt_w) / 2;
     int bolt_y = FILL_TOP + ((FILL_BOTTOM - FILL_TOP + 1) - bolt_h) / 2;
 
-    /* 先在闪电周围挖 1px 背景，避免与棋盘格/填充粘连 */
-    lv_draw_rect_dsc_t bg_dsc;
-    init_rect_dsc(&bg_dsc, LVGL_BACKGROUND);
-    lv_canvas_draw_rect(canvas, bolt_x - 1, bolt_y - 1, bolt_w + 2, bolt_h + 2, &bg_dsc);
-
-    /* 叠加闪电 */
+    /* bolt_large 自带白边，直接叠加，无需先挖背景 */
     lv_draw_img_dsc_t img_dsc;
     lv_draw_img_dsc_init(&img_dsc);
-    lv_canvas_draw_img(canvas, bolt_x, bolt_y, &bolt, &img_dsc);
+    lv_canvas_draw_img(canvas, bolt_x, bolt_y, &bolt_large, &img_dsc);
 }
 
 static void draw_battery_level(lv_obj_t *canvas, uint8_t level) {
