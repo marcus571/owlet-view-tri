@@ -2,11 +2,8 @@
 /*
  * screen.c — 单 canvas 160×68 三栏布局调度
  *
- * 2026-11-08 新架构：
- *   - 单 canvas 160×68 替代旧双 canvas
- *   - 左栏：电池（battery.c，0..51）
- *   - 中栏：连接状态（output.c，56..103）
- *   - 右栏：待实现
+ * 2026-11-08：
+ *   - 左栏（电池）、中栏（连接状态）、右栏（图层状态）全部启用
  *   - 分隔线 X=53、X=106，Y 4..64
  */
 
@@ -54,7 +51,7 @@ static void draw_all(lv_obj_t *widget, const struct status_state *state) {
 
     draw_battery_status(canvas, state);   /* 左栏 */
     draw_output_status(canvas, state);    /* 中栏 */
-    /* TODO: 右栏 draw_layer_status 重做后启用 */
+    draw_layer_status(canvas, state);     /* 右栏 */
 
     draw_separator(canvas, SEPARATOR_LEFT_X);
     draw_separator(canvas, SEPARATOR_RIGHT_X);
@@ -96,6 +93,7 @@ ZMK_SUBSCRIPTION(widget_battery_status, zmk_usb_conn_state_changed);
 static void set_layer_status(struct zmk_widget_screen *widget, struct layer_status_state state) {
     widget->state.layer_index = state.index;
     widget->state.layer_label = state.label;
+    widget->state.layer_mask = state.layer_mask;
     draw_all(widget->obj, &widget->state);
 }
 
@@ -106,7 +104,11 @@ static void layer_status_update_cb(struct layer_status_state state) {
 
 static struct layer_status_state layer_status_get_state(const zmk_event_t *eh) {
     uint8_t index = zmk_keymap_highest_layer_active();
-    return (struct layer_status_state){.index = index, .label = zmk_keymap_layer_name(index)};
+    return (struct layer_status_state){
+        .index = index,
+        .label = zmk_keymap_layer_name(index),
+        .layer_mask = zmk_keymap_layer_state()
+    };
 }
 
 ZMK_DISPLAY_WIDGET_LISTENER(widget_layer_status, struct layer_status_state, layer_status_update_cb,
@@ -162,6 +164,8 @@ int zmk_widget_screen_init(struct zmk_widget_screen *widget, lv_obj_t *parent) {
 
     struct status_state initial_state = {0};
     initial_state.battery = 100; /* TODO(max17048): mock */
+    initial_state.layer_index = 0;
+    initial_state.layer_mask = 1; /* 初始默认激活 Layer 0 */
     draw_all(widget->obj, &initial_state);
 
     return 0;
