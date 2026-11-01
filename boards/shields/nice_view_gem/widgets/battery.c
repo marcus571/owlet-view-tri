@@ -1,16 +1,18 @@
 // boards/shields/nice_view_gem/widgets/battery.c
 /*
- * battery.c — 左栏：大电池轮廓 + 点阵填充 + 充电闪电 + 百分比文字
+ * battery.c — 左栏：大电池轮廓 + 棋盘格填充 + 充电闪电 + 百分比文字
  *
  * 屏幕布局（160×68 横屏，左栏 X=4..51，中心 28）：
- *   电池轮廓        (16, 4)      24×40
- *   内部可填充区    (18, 9)..(37, 41)  共 20×33
- *   battery_mask    (18, 10)..(37, 41) 共 20×32（底部对齐，顶部 Y=9 留 1 行）
+ *   电池轮廓        (16, 4)      24×45
+ *   内部可填充区    (18, 9)..(37, 46)  共 20×38
+ *   battery_mask    (18, 9)..(37, 46)  共 20×38（与内部完全匹配）
  *   百分比文字      (4, 52) 宽 48，LV_TEXT_ALIGN_CENTER 自动居中
  *   充电闪电        电池内部居中，先挖背景再叠加
  *
  * 2026-11-07 修改：
- *   百分比文字下移 6px（46 → 52），更靠近屏幕底部。
+ *   - battery 尺寸 24×42 → 24×45
+ *   - battery_mask 尺寸 20×35 → 20×38
+ *   - FILL_BOTTOM 41 → 46，FILL_H_MAX 33 → 38
  *
  * TODO: 大闪电 bolt_large 待提供，暂时用现有小 bolt (5×9) 占位。
  */
@@ -22,7 +24,7 @@
 #include "battery.h"
 #include "../assets/custom_fonts.h"
 
-LV_IMG_DECLARE(battery_outline);
+LV_IMG_DECLARE(battery);
 LV_IMG_DECLARE(battery_mask);
 LV_IMG_DECLARE(bolt); /* TODO: 替换为 bolt_large */
 
@@ -31,9 +33,9 @@ LV_IMG_DECLARE(bolt); /* TODO: 替换为 bolt_large */
 #define BATTERY_Y     4
 #define FILL_X        18
 #define FILL_TOP      9
-#define FILL_BOTTOM   41
+#define FILL_BOTTOM   46
 #define FILL_W        20
-#define FILL_H_MAX    32 /* battery_mask 实际高度 */
+#define FILL_H_MAX    38 /* battery_mask 实际高度，与内部完全匹配 */
 
 /* 百分比文字 */
 #define PCT_X         4
@@ -50,7 +52,7 @@ static uint8_t sub_mask_buf[SUB_MASK_BUF_SIZE];
 static void draw_battery_outline(lv_obj_t *canvas) {
     lv_draw_img_dsc_t img_dsc;
     lv_draw_img_dsc_init(&img_dsc);
-    lv_canvas_draw_img(canvas, BATTERY_X, BATTERY_Y, &battery_outline, &img_dsc);
+    lv_canvas_draw_img(canvas, BATTERY_X, BATTERY_Y, &battery, &img_dsc);
 }
 
 static void draw_battery_fill(lv_obj_t *canvas, uint8_t level) {
@@ -66,7 +68,7 @@ static void draw_battery_fill(lv_obj_t *canvas, uint8_t level) {
         fill_h = 1; /* 非 0 至少显示 1 行 */
     }
 
-    /* 从 mask 底部取 fill_h 行（顶部对齐效果会更差，故取底部） */
+    /* 从 mask 底部取 fill_h 行 */
     int skip_rows = FILL_H_MAX - fill_h;
     const uint8_t *src = (const uint8_t *)battery_mask.data;
 
@@ -97,7 +99,7 @@ static void draw_battery_charging(lv_obj_t *canvas) {
     int bolt_x = FILL_X + (FILL_W - bolt_w) / 2;
     int bolt_y = FILL_TOP + ((FILL_BOTTOM - FILL_TOP + 1) - bolt_h) / 2;
 
-    /* 先在闪电周围挖 1px 背景，避免与点阵/填充粘连 */
+    /* 先在闪电周围挖 1px 背景，避免与棋盘格/填充粘连 */
     lv_draw_rect_dsc_t bg_dsc;
     init_rect_dsc(&bg_dsc, LVGL_BACKGROUND);
     lv_canvas_draw_rect(canvas, bolt_x - 1, bolt_y - 1, bolt_w + 2, bolt_h + 2, &bg_dsc);
