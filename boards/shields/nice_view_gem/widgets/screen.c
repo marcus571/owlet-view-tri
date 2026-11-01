@@ -2,8 +2,10 @@
 /*
  * screen.c — 单 canvas 160×68 三栏布局调度
  *
- * 2026-11-08：
- *   - 修复 ZMK layer_state 不包含默认层导致 UI 无点的问题
+ * 2026-11-08 清理版：
+ *   - 恢复真实电量读取
+ *   - 移除 profile.h 引用，移除未使用的 label
+ *   - 初始化状态同步使用真实数据
  */
 
 #include <zephyr/kernel.h>
@@ -27,7 +29,6 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include "battery.h"
 #include "layer.h"
 #include "output.h"
-#include "profile.h"
 #include "screen.h"
 
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
@@ -72,10 +73,8 @@ static void battery_status_update_cb(struct battery_status_state state) {
 
 static struct battery_status_state battery_status_get_state(const zmk_event_t *eh) {
     const struct zmk_battery_state_changed *ev = as_zmk_battery_state_changed(eh);
-    (void)ev; /* TODO(max17048): 线路修复后恢复真实读取 */
-
     return (struct battery_status_state){
-        .level = 100, /* TODO(max17048): mock 100% */
+        .level = (ev != NULL) ? ev->state_of_charge : zmk_battery_state_of_charge(),
 #if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
         .usb_present = zmk_usb_is_powered(),
 #endif
@@ -91,7 +90,6 @@ ZMK_SUBSCRIPTION(widget_battery_status, zmk_usb_conn_state_changed);
 
 static void set_layer_status(struct zmk_widget_screen *widget, struct layer_status_state state) {
     widget->state.layer_index = state.index;
-    widget->state.layer_label = state.label;
     widget->state.layer_mask = state.layer_mask;
     draw_all(widget->obj, &widget->state);
 }
@@ -105,17 +103,12 @@ static struct layer_status_state layer_status_get_state(const zmk_event_t *eh) {
     uint8_t index = zmk_keymap_highest_layer_active();
     uint32_t mask = zmk_keymap_layer_state();
     
-    /* 
-     * ZMK 的 layer_state 掩码默认不包含基础层（Layer 0），
-     * 但基础层在逻辑上始终处于激活状态（兜底）。
-     * 我们需要手动把默认层和当前最高层强制加入掩码，确保 UI 至少显示一个点。
-     */
+    /* 强制包含基础层和当前最高层 */
     mask |= (1U << zmk_keymap_layer_default());
     mask |= (1U << index);
 
     return (struct layer_status_state){
         .index = index,
-        .label = zmk_keymap_layer_name(index),
         .layer_mask = mask
     };
 }
@@ -159,7 +152,7 @@ ZMK_SUBSCRIPTION(widget_output_status, zmk_ble_active_profile_changed);
 
 int zmk_widget_screen_init(struct zmk_widget_screen *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
-    lv_obj_set_size(widget->obj, SCREEN_HEIGHT, SCREEN_WIDTH);
+    lv_obj_set_size(widget->obj, SCREEN_CANVAS_W, SCREEN_CANVAS_H);
 
     lv_obj_t *canvas = lv_canvas_create(widget->obj);
     lv_obj_align(canvas, LV_ALIGN_TOP_LEFT, 0, 0);
@@ -172,9 +165,9 @@ int zmk_widget_screen_init(struct zmk_widget_screen *widget, lv_obj_t *parent) {
     widget_output_status_init();
 
     struct status_state initial_state = {0};
-    initial_state.battery = 100; /* TODO(max17048): mock */
-    initial_state.layer_index = 0;
-    initial_state.layer_mask = 1; /* 初始默认激活 Layer 0 */
+    initial_state.battery = zmk_battery_state_of_charge();
+    initial_state.layer_index = zmk_keymap_highest_layer_active();
+    initial_state.layer_mask = (1U << zmk_keymap_layer_default()) | (1U << initial_state.layer_index);
     draw_all(widget->obj, &initial_state);
 
     return 0;
