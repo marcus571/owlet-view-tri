@@ -30,6 +30,7 @@ struct status_state {
     bool active_profile_connected;
     bool active_profile_bonded;
     uint8_t layer_index;
+    uint32_t layer_mask; /* 新增：当前激活层的位掩码 */
     const char *layer_label;
     uint8_t wpm[10];
 #else
