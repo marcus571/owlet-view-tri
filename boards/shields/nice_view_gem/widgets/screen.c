@@ -3,8 +3,7 @@
  * screen.c — 单 canvas 160×68 三栏布局调度
  *
  * 2026-11-08：
- *   - 左栏（电池）、中栏（连接状态）、右栏（图层状态）全部启用
- *   - 分隔线 X=53、X=106，Y 4..64
+ *   - 修复 ZMK layer_state 不包含默认层导致 UI 无点的问题
  */
 
 #include <zephyr/kernel.h>
@@ -104,10 +103,20 @@ static void layer_status_update_cb(struct layer_status_state state) {
 
 static struct layer_status_state layer_status_get_state(const zmk_event_t *eh) {
     uint8_t index = zmk_keymap_highest_layer_active();
+    uint32_t mask = zmk_keymap_layer_state();
+    
+    /* 
+     * ZMK 的 layer_state 掩码默认不包含基础层（Layer 0），
+     * 但基础层在逻辑上始终处于激活状态（兜底）。
+     * 我们需要手动把默认层和当前最高层强制加入掩码，确保 UI 至少显示一个点。
+     */
+    mask |= (1U << zmk_keymap_layer_default());
+    mask |= (1U << index);
+
     return (struct layer_status_state){
         .index = index,
         .label = zmk_keymap_layer_name(index),
-        .layer_mask = zmk_keymap_layer_state()
+        .layer_mask = mask
     };
 }
 
