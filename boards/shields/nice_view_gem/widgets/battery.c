@@ -3,8 +3,7 @@
  * battery.c — 左栏：大电池轮廓 + 点阵填充 + 左侧充电闪电 + 百分比文字
  *
  * 2026-11-08 修改：
- *   - 电池图变瘦，宽度 20，X 18..37
- *   - 点阵 mask 改为 14×36，Y 10..45
+ *   - 移除左栏留白，重算坐标。左栏中心 X=26。
  */
 
 #include <zephyr/kernel.h>
@@ -19,23 +18,23 @@ LV_IMG_DECLARE(battery_mask);
 LV_IMG_DECLARE(bolt_large);
 
 /* 电池图 */
-#define BATTERY_X     18
+#define BATTERY_X     16
 #define BATTERY_Y     4
 #define BATTERY_H     45
 
 /* 点阵填充区（电池内轮廓再内缩 1px） */
-#define FILL_X        21
+#define FILL_X        19
 #define FILL_W        14
 #define FILL_TOP      10
 #define FILL_BOTTOM   45
 #define FILL_H_MAX    36
 
-/* 闪电所在区域：左栏起点 X=4 到电池左边界 X=18 */
-#define BOLT_AREA_LEFT   4
+/* 闪电所在区域：左栏起点 X=0 到电池左边界 X=16 */
+#define BOLT_AREA_LEFT   0
 #define BOLT_AREA_RIGHT  BATTERY_X
 
-/* 百分比文字 */
-#define PCT_X         4
+/* 百分比文字（宽 48，居中于中心点 26） */
+#define PCT_X         2
 #define PCT_Y         52
 #define PCT_W         48
 
@@ -65,7 +64,6 @@ static void draw_battery_fill(lv_obj_t *canvas, uint8_t level) {
         fill_h = 1;
     }
 
-    /* 从 mask 底部取 fill_h 行 */
     int skip_rows = FILL_H_MAX - fill_h;
     const uint8_t *src = (const uint8_t *)battery_mask.data;
 
