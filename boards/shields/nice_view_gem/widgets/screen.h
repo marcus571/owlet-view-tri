@@ -1,3 +1,4 @@
+// boards/shields/nice_view_gem/widgets/screen.h
 #pragma once
 
 #include <lvgl.h>
@@ -7,9 +8,7 @@
 struct zmk_widget_screen {
     sys_snode_t node;
     lv_obj_t *obj;
-    lv_color_t cbuf[BUFFER_SIZE * BUFFER_SIZE];
-    lv_color_t cbuf2[BUFFER_SIZE * BUFFER_SIZE];
-    lv_color_t cbuf3[BUFFER_SIZE * BUFFER_SIZE];
+    lv_color_t cbuf[SCREEN_CANVAS_W * SCREEN_CANVAS_H];
     struct status_state state;
 };
 
