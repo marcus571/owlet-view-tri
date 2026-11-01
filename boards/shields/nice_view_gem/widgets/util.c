@@ -1,28 +1,6 @@
 // boards/shields/nice_view_gem/widgets/util.c
 #include <zephyr/kernel.h>
 #include "util.h"
-#include <ctype.h>
-
-void to_uppercase(char *str) {
-    for (int i = 0; str[i] != '\0'; i++) {
-        str[i] = toupper(str[i]);
-    }
-}
-
-void rotate_canvas(lv_obj_t *canvas, lv_color_t cbuf[]) {
-    static lv_color_t cbuf_tmp[BUFFER_SIZE * BUFFER_SIZE];
-    memcpy(cbuf_tmp, cbuf, sizeof(cbuf_tmp));
-
-    lv_img_dsc_t img;
-    img.data = (void *)cbuf_tmp;
-    img.header.cf = LV_IMG_CF_TRUE_COLOR;
-    img.header.w = BUFFER_SIZE;
-    img.header.h = BUFFER_SIZE;
-
-    lv_canvas_fill_bg(canvas, LVGL_BACKGROUND, LV_OPA_COVER);
-    lv_canvas_transform(canvas, &img, 900, LV_IMG_ZOOM_NONE, -1, 0, BUFFER_SIZE / 2,
-                        BUFFER_SIZE / 2, false);
-}
 
 void fill_background(lv_obj_t *canvas) {
     lv_draw_rect_dsc_t rect_dsc;
