@@ -3,11 +3,13 @@
  * output.c — 中栏：大号蓝牙状态图标 + 5 个设备点 + USB 图标
  *
  * 屏幕布局（160×68 横屏，中栏 X=56..103，中心 X=80）：
- *   蓝牙 24×28      Y 9..36（剩余空间居中）
- *   5 点 5×5        Y 43..47（底 47，两种模式相同）
- *   USB 20×11       Y 52..62（底 62，仅 USB 模式）
- *
- * 有/无 USB 模式下蓝牙和 5 点位置完全一致，切换时中栏上半部分不跳动。
+ *   有 USB 模式：
+ *     大蓝牙 24×28   Y 7..34（剩余空间居中）
+ *     5 点 5×5       Y 43..47（与 USB 间距 4px）
+ *     USB 20×11      Y 52..62（底 62）
+ *   无 USB 模式：
+ *     大蓝牙 24×28   Y 15..42（剩余空间居中）
+ *     5 点 5×5       Y 58..62（底部与 USB 图标对齐）
  *
  * 5 个设备点：5px 直径，间距 4px，总宽 41，X 60..100，居中 80
  */
@@ -30,10 +32,14 @@ LV_IMG_DECLARE(usb);
 #define DOTS_TOTAL_W   (DOT_COUNT * DOT_SIZE + (DOT_COUNT - 1) * DOT_GAP)
 #define DOTS_X         (CENTER_X - DOTS_TOTAL_W / 2)
 
-/* 纵向坐标（有/无 USB 共用蓝牙和 5 点 Y） */
-#define BT_LARGE_Y     9
-#define DOTS_Y         43
-#define USB_Y          52
+/* 有 USB 模式 Y */
+#define BT_LARGE_Y_USB      7
+#define DOTS_Y_USB          43
+#define USB_Y               52
+
+/* 无 USB 模式 Y */
+#define BT_LARGE_Y_NO_USB   15
+#define DOTS_Y_NO_USB       58
 
 static void draw_centered_img(lv_obj_t *canvas, const lv_img_dsc_t *img, int y) {
     int x = CENTER_X - img->header.w / 2;
@@ -42,7 +48,7 @@ static void draw_centered_img(lv_obj_t *canvas, const lv_img_dsc_t *img, int y) 
     lv_canvas_draw_img(canvas, x, y, img, &dsc);
 }
 
-static void draw_bt_large(lv_obj_t *canvas, const struct status_state *state) {
+static void draw_bt_large(lv_obj_t *canvas, const struct status_state *state, int y) {
     const lv_img_dsc_t *img;
     if (state->active_profile_connected) {
         img = &bt_large_connected;
@@ -51,10 +57,10 @@ static void draw_bt_large(lv_obj_t *canvas, const struct status_state *state) {
     } else {
         img = &bt_large_searching;
     }
-    draw_centered_img(canvas, img, BT_LARGE_Y);
+    draw_centered_img(canvas, img, y);
 }
 
-static void draw_device_dots(lv_obj_t *canvas, const struct status_state *state) {
+static void draw_device_dots(lv_obj_t *canvas, const struct status_state *state, int y) {
     for (int i = 0; i < DOT_COUNT; i++) {
         int x = DOTS_X + i * (DOT_SIZE + DOT_GAP);
 
@@ -62,13 +68,13 @@ static void draw_device_dots(lv_obj_t *canvas, const struct status_state *state)
 
         lv_draw_rect_dsc_t fg_dsc;
         init_rect_dsc(&fg_dsc, LVGL_FOREGROUND);
-        lv_canvas_draw_rect(canvas, x, DOTS_Y, DOT_SIZE, DOT_SIZE, &fg_dsc);
+        lv_canvas_draw_rect(canvas, x, y, DOT_SIZE, DOT_SIZE, &fg_dsc);
 
         if (!active) {
             /* 空心：中心 (DOT_SIZE-2)² 用背景色覆盖 */
             lv_draw_rect_dsc_t bg_dsc;
             init_rect_dsc(&bg_dsc, LVGL_BACKGROUND);
-            lv_canvas_draw_rect(canvas, x + 1, DOTS_Y + 1, DOT_SIZE - 2, DOT_SIZE - 2, &bg_dsc);
+            lv_canvas_draw_rect(canvas, x + 1, y + 1, DOT_SIZE - 2, DOT_SIZE - 2, &bg_dsc);
         }
     }
 }
@@ -80,10 +86,12 @@ static void draw_usb_icon(lv_obj_t *canvas) {
 void draw_output_status(lv_obj_t *canvas, const struct status_state *state) {
     bool usb_mode = (state->selected_endpoint.transport == ZMK_TRANSPORT_USB);
 
-    draw_bt_large(canvas, state);
-    draw_device_dots(canvas, state);
-
     if (usb_mode) {
+        draw_bt_large(canvas, state, BT_LARGE_Y_USB);
+        draw_device_dots(canvas, state, DOTS_Y_USB);
         draw_usb_icon(canvas);
+    } else {
+        draw_bt_large(canvas, state, BT_LARGE_Y_NO_USB);
+        draw_device_dots(canvas, state, DOTS_Y_NO_USB);
     }
 }
