@@ -1,11 +1,10 @@
 // boards/shields/nice_view_gem/widgets/battery.c
 /*
- * battery.c — 左栏：大电池轮廓 + 实心填充 + 左侧充电闪电 + 百分比文字
+ * battery.c — 左栏：大电池轮廓 + 点阵填充 + 左侧充电闪电 + 百分比文字
  *
  * 2026-11-08 修改：
- *   - 电池图宽度 24→20，需要重新居中
- *   - 电池位置 X 16→18，实心填充 X 19→21、宽 18→14
- *   - 闪电位置利用 BOLT_AREA_RIGHT 自动调整居中
+ *   - 电池图变瘦，宽度 20，X 18..37
+ *   - 点阵 mask 改为 14×36，Y 10..45
  */
 
 #include <zephyr/kernel.h>
@@ -16,6 +15,7 @@
 #include "../assets/custom_fonts.h"
 
 LV_IMG_DECLARE(battery);
+LV_IMG_DECLARE(battery_mask);
 LV_IMG_DECLARE(bolt_large);
 
 /* 电池图 */
@@ -23,7 +23,7 @@ LV_IMG_DECLARE(bolt_large);
 #define BATTERY_Y     4
 #define BATTERY_H     45
 
-/* 实心填充区（电池内轮廓再内缩 1px） */
+/* 点阵填充区（电池内轮廓再内缩 1px） */
 #define FILL_X        21
 #define FILL_W        14
 #define FILL_TOP      10
@@ -38,6 +38,13 @@ LV_IMG_DECLARE(bolt_large);
 #define PCT_X         4
 #define PCT_Y         52
 #define PCT_W         48
+
+/* 1-bit indexed 子 mask：palette 8 字节 + 位图行 */
+#define MASK_PALETTE_BYTES 8
+#define MASK_ROW_BYTES     ((FILL_W + 7) / 8) /* 14 -> 2 */
+#define SUB_MASK_BUF_SIZE  (MASK_PALETTE_BYTES + FILL_H_MAX * MASK_ROW_BYTES)
+
+static uint8_t sub_mask_buf[SUB_MASK_BUF_SIZE];
 
 static void draw_battery_outline(lv_obj_t *canvas) {
     lv_draw_img_dsc_t img_dsc;
@@ -58,11 +65,29 @@ static void draw_battery_fill(lv_obj_t *canvas, uint8_t level) {
         fill_h = 1;
     }
 
+    /* 从 mask 底部取 fill_h 行 */
+    int skip_rows = FILL_H_MAX - fill_h;
+    const uint8_t *src = (const uint8_t *)battery_mask.data;
+
+    memcpy(sub_mask_buf, src, MASK_PALETTE_BYTES);
+    memcpy(sub_mask_buf + MASK_PALETTE_BYTES,
+           src + MASK_PALETTE_BYTES + skip_rows * MASK_ROW_BYTES,
+           fill_h * MASK_ROW_BYTES);
+
+    lv_img_dsc_t sub_dsc;
+    sub_dsc.header.cf = LV_IMG_CF_INDEXED_1BIT;
+    sub_dsc.header.always_zero = 0;
+    sub_dsc.header.reserved = 0;
+    sub_dsc.header.w = FILL_W;
+    sub_dsc.header.h = fill_h;
+    sub_dsc.data_size = MASK_PALETTE_BYTES + fill_h * MASK_ROW_BYTES;
+    sub_dsc.data = sub_mask_buf;
+
     int fill_y = FILL_BOTTOM - fill_h + 1;
 
-    lv_draw_rect_dsc_t rect_dsc;
-    init_rect_dsc(&rect_dsc, LVGL_FOREGROUND);
-    lv_canvas_draw_rect(canvas, FILL_X, fill_y, FILL_W, fill_h, &rect_dsc);
+    lv_draw_img_dsc_t img_dsc;
+    lv_draw_img_dsc_init(&img_dsc);
+    lv_canvas_draw_img(canvas, FILL_X, fill_y, &sub_dsc, &img_dsc);
 }
 
 static void draw_battery_charging(lv_obj_t *canvas) {
