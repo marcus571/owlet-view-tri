@@ -1,3 +1,4 @@
+// boards/shields/nice_view_gem/widgets/util.h
 #pragma once
 
 #include <lvgl.h>
@@ -6,6 +7,11 @@
 #define SCREEN_WIDTH 68
 #define SCREEN_HEIGHT 160
 
+/* 单 canvas 尺寸（横屏） */
+#define SCREEN_CANVAS_W 160
+#define SCREEN_CANVAS_H 68
+
+/* 旧双 canvas 遗留，保留供潜在兼容 */
 #define BUFFER_SIZE 68
 #define BUFFER_OFFSET_MIDDLE -44
 #define BUFFER_OFFSET_BOTTOM -129
