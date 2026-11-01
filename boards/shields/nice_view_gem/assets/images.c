@@ -117,7 +117,7 @@ const lv_img_dsc_t usb = {
     .data = usb_map,
 };
 
-/* ==================== 电池闪电 (旧小闪电，待 bolt_large 替换) ==================== */
+/* ==================== 电池闪电 (旧 UI 遗留，新 UI 不引用) ==================== */
 #ifndef LV_ATTRIBUTE_IMG_BOLT
 #define LV_ATTRIBUTE_IMG_BOLT
 #endif
@@ -141,6 +141,50 @@ const lv_img_dsc_t bolt = {
     .header.h = 9,
     .data_size = 17,
     .data = bolt_map,
+};
+
+/* ==================== 大电池充电闪电 (12×17，自带白边) ==================== */
+#ifndef LV_ATTRIBUTE_IMG_BOLT_LARGE
+#define LV_ATTRIBUTE_IMG_BOLT_LARGE
+#endif
+
+const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_BOLT_LARGE uint8_t
+    bolt_large_map[] = {
+#if CONFIG_NICE_VIEW_WIDGET_INVERTED
+    0x00, 0x00, 0x00, 0xff, /*Color of index 0*/
+    0xff, 0xff, 0xff, 0xff, /*Color of index 1*/
+#else
+    0xff, 0xff, 0xff, 0xff, /*Color of index 0*/
+    0x00, 0x00, 0x00, 0xff, /*Color of index 1*/
+#endif
+
+  0xf8, 0x70,
+  0xf7, 0xb0,
+  0xef, 0xb0,
+  0xef, 0xb0,
+  0xdf, 0x70,
+  0xdf, 0x70,
+  0xbe, 0x30,
+  0xbf, 0xd0,
+  0xbf, 0xd0,
+  0xbf, 0xd0,
+  0xc7, 0xb0,
+  0xf7, 0xb0,
+  0xf7, 0x70,
+  0xf7, 0x70,
+  0xfa, 0xf0,
+  0xfa, 0xf0,
+  0xfd, 0xf0,
+};
+
+const lv_img_dsc_t bolt_large = {
+    .header.cf = LV_IMG_CF_INDEXED_1BIT,
+    .header.always_zero = 0,
+    .header.reserved = 0,
+    .header.w = 12,
+    .header.h = 17,
+    .data_size = 42,
+    .data = bolt_large_map,
 };
 
 /* ==================== 专属 Logo (保留，新 UI 不引用) ==================== */
