@@ -1,13 +1,15 @@
 // boards/shields/nice_view_gem/widgets/screen.c
 /*
- * screen.c — 三栏布局调度
+ * screen.c — 单 canvas 160×68 三栏布局调度
  *
- * 2026-11-07 新 UI：
- *   - 左栏：大电池 + 棋盘格填充 + 透明闪电（带描边）
- *   - 中栏：空（待 bt_large / bt_small / bt_searching / usb）
- *   - 右栏：空（待 layer_icon）；两栏之间 1px 分隔线
- *   - 电量 mock 为 100%（MAX17048 线路待修）
+ * 2026-11-08 新架构：
+ *   - 单 canvas 160×68 替代旧双 canvas
+ *   - 左栏：电池（battery.c，0..51）
+ *   - 中栏：连接状态（output.c，56..103）
+ *   - 右栏：待实现
+ *   - 分隔线 X=53、X=106，Y 4..64
  */
+
 #include <zephyr/kernel.h>
 
 #include <zephyr/logging/log.h>
@@ -34,30 +36,27 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 
-/* 分隔线：Y 4..64，1px */
-#define SEPARATOR_Y          4
-#define SEPARATOR_H          61
-#define SEPARATOR_LEFT_X     53
-#define SEPARATOR_RIGHT_X    14
+/* 分隔线 */
+#define SEPARATOR_Y        4
+#define SEPARATOR_H        61
+#define SEPARATOR_LEFT_X   53
+#define SEPARATOR_RIGHT_X  106
 
 static void draw_separator(lv_obj_t *canvas, int x) {
-    lv_draw_rect_dsc_t rect_dsc;
-    init_rect_dsc(&rect_dsc, LVGL_FOREGROUND);
-    lv_canvas_draw_rect(canvas, x, SEPARATOR_Y, 1, SEPARATOR_H, &rect_dsc);
+    lv_draw_rect_dsc_t dsc;
+    init_rect_dsc(&dsc, LVGL_FOREGROUND);
+    lv_canvas_draw_rect(canvas, x, SEPARATOR_Y, 1, SEPARATOR_H, &dsc);
 }
 
-static void draw_left(lv_obj_t *widget, lv_color_t cbuf[], const struct status_state *state) {
+static void draw_all(lv_obj_t *widget, const struct status_state *state) {
     lv_obj_t *canvas = lv_obj_get_child(widget, 0);
     fill_background(canvas);
 
-    draw_battery_status(canvas, state);
+    draw_battery_status(canvas, state);   /* 左栏 */
+    draw_output_status(canvas, state);    /* 中栏 */
+    /* TODO: 右栏 draw_layer_status 重做后启用 */
+
     draw_separator(canvas, SEPARATOR_LEFT_X);
-}
-
-static void draw_right(lv_obj_t *widget, lv_color_t cbuf[], const struct status_state *state) {
-    lv_obj_t *canvas = lv_obj_get_child(widget, 1);
-    fill_background(canvas);
-
     draw_separator(canvas, SEPARATOR_RIGHT_X);
 }
 
@@ -67,7 +66,7 @@ static void set_battery_status(struct zmk_widget_screen *widget,
     widget->state.charging = state.usb_present;
 #endif
     widget->state.battery = state.level;
-    draw_left(widget->obj, widget->cbuf, &widget->state);
+    draw_all(widget->obj, &widget->state);
 }
 
 static void battery_status_update_cb(struct battery_status_state state) {
@@ -77,11 +76,10 @@ static void battery_status_update_cb(struct battery_status_state state) {
 
 static struct battery_status_state battery_status_get_state(const zmk_event_t *eh) {
     const struct zmk_battery_state_changed *ev = as_zmk_battery_state_changed(eh);
-    (void)ev; /* TODO(max17048): 线路修复后删除此行，并恢复下方真实读取 */
+    (void)ev; /* TODO(max17048): 线路修复后恢复真实读取 */
 
     return (struct battery_status_state){
-        .level = 100, /* TODO(max17048): 临时 mock，用于观察 100% 填充效果 */
-        /* .level = (ev != NULL) ? ev->state_of_charge : zmk_battery_state_of_charge(), */
+        .level = 100, /* TODO(max17048): mock 100% */
 #if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
         .usb_present = zmk_usb_is_powered(),
 #endif
@@ -98,8 +96,7 @@ ZMK_SUBSCRIPTION(widget_battery_status, zmk_usb_conn_state_changed);
 static void set_layer_status(struct zmk_widget_screen *widget, struct layer_status_state state) {
     widget->state.layer_index = state.index;
     widget->state.layer_label = state.label;
-    draw_left(widget->obj, widget->cbuf, &widget->state);
-    draw_right(widget->obj, widget->cbuf2, &widget->state);
+    draw_all(widget->obj, &widget->state);
 }
 
 static void layer_status_update_cb(struct layer_status_state state) {
@@ -122,7 +119,7 @@ static void set_output_status(struct zmk_widget_screen *widget,
     widget->state.active_profile_index = state->active_profile_index;
     widget->state.active_profile_connected = state->active_profile_connected;
     widget->state.active_profile_bonded = state->active_profile_bonded;
-    draw_left(widget->obj, widget->cbuf, &widget->state);
+    draw_all(widget->obj, &widget->state);
 }
 
 static void output_status_update_cb(struct output_status_state state) {
@@ -153,13 +150,10 @@ int zmk_widget_screen_init(struct zmk_widget_screen *widget, lv_obj_t *parent) {
     widget->obj = lv_obj_create(parent);
     lv_obj_set_size(widget->obj, SCREEN_HEIGHT, SCREEN_WIDTH);
 
-    lv_obj_t *left = lv_canvas_create(widget->obj);
-    lv_obj_align(left, LV_ALIGN_TOP_LEFT, 0, 0);
-    lv_canvas_set_buffer(left, widget->cbuf, BUFFER_SIZE, BUFFER_SIZE, LV_IMG_CF_TRUE_COLOR);
-
-    lv_obj_t *right = lv_canvas_create(widget->obj);
-    lv_obj_align(right, LV_ALIGN_TOP_RIGHT, 0, 0);
-    lv_canvas_set_buffer(right, widget->cbuf2, BUFFER_SIZE, BUFFER_SIZE, LV_IMG_CF_TRUE_COLOR);
+    lv_obj_t *canvas = lv_canvas_create(widget->obj);
+    lv_obj_align(canvas, LV_ALIGN_TOP_LEFT, 0, 0);
+    lv_canvas_set_buffer(canvas, widget->cbuf, SCREEN_CANVAS_W, SCREEN_CANVAS_H,
+                         LV_IMG_CF_TRUE_COLOR);
 
     sys_slist_append(&widgets, &widget->node);
     widget_battery_status_init();
@@ -167,10 +161,8 @@ int zmk_widget_screen_init(struct zmk_widget_screen *widget, lv_obj_t *parent) {
     widget_output_status_init();
 
     struct status_state initial_state = {0};
-    initial_state.layer_index = 0;
-    initial_state.battery = 100; /* TODO(max17048): 初始也 mock 100% */
-    draw_left(widget->obj, widget->cbuf, &initial_state);
-    draw_right(widget->obj, widget->cbuf2, &initial_state);
+    initial_state.battery = 100; /* TODO(max17048): mock */
+    draw_all(widget->obj, &initial_state);
 
     return 0;
 }
