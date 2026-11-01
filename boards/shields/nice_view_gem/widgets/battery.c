@@ -2,20 +2,10 @@
 /*
  * battery.c — 左栏：大电池轮廓 + 棋盘格填充 + 充电闪电 + 百分比文字
  *
- * 屏幕布局（160×68 横屏，左栏 X=4..51，中心 28）：
- *   电池轮廓        (16, 4)      24×45
- *   内部可填充区    (18, 9)..(37, 46)  共 20×38
- *   battery_mask    (18, 9)..(37, 46)  共 20×38（与内部完全匹配）
- *   百分比文字      (4, 52) 宽 48，LV_TEXT_ALIGN_CENTER 自动居中
- *   充电闪电        bolt_large 12×17，自带白边，直接叠加于电池内部居中
- *
  * 2026-11-07 修改：
- *   - 闪电由小 bolt (5×9) 换为 bolt_large (12×17)
- *   - bolt_large 自带白边，去掉“先挖背景矩形”逻辑，直接叠加
- *
- * bolt 闪电居中坐标（自动计算）：
- *   X = 18 + (20-12)/2 = 22，占 X 22..33（中心 28 ✓）
- *   Y = 9 + (38-17)/2 = 19，占 Y 19..35（中心 27 ✓）
+ *   - bolt_large 自带透明背景，闪电本体可见
+ *   - 绘制闪电前，先挖“闪电外接矩形 + 1px”背景色，形成紧贴闪电的白/黑描边
+ *   - 描边外仍是电池填充，闪电与填充之间始终有 1px 分隔
  */
 
 #include <zephyr/kernel.h>
@@ -36,7 +26,7 @@ LV_IMG_DECLARE(bolt_large);
 #define FILL_TOP      9
 #define FILL_BOTTOM   46
 #define FILL_W        20
-#define FILL_H_MAX    38 /* battery_mask 实际高度，与内部完全匹配 */
+#define FILL_H_MAX    38
 
 /* 百分比文字 */
 #define PCT_X         4
@@ -45,8 +35,19 @@ LV_IMG_DECLARE(bolt_large);
 
 /* 1-bit indexed 子 mask：palette 8 字节 + 位图行 */
 #define MASK_PALETTE_BYTES 8
-#define MASK_ROW_BYTES     ((FILL_W + 7) / 8) /* 20 -> 3 */
+#define MASK_ROW_BYTES     ((FILL_W + 7) / 8)
 #define SUB_MASK_BUF_SIZE  (MASK_PALETTE_BYTES + FILL_H_MAX * MASK_ROW_BYTES)
+
+/*
+ * bolt_large 当前位图的实际外接矩形（不含透明边）：
+ *   x: 2..8（宽 7），y: 1..15（高 15）
+ * 外扩 1px 得到描边矩形：x 1..9（宽 9），y 0..16（高 17）
+ * 若以后重画 bolt_large，按新位图更新下面这 4 个值即可。
+ */
+#define BOLT_BBOX_X        1
+#define BOLT_BBOX_Y        0
+#define BOLT_BBOX_W        9
+#define BOLT_BBOX_H        17
 
 static uint8_t sub_mask_buf[SUB_MASK_BUF_SIZE];
 
@@ -66,10 +67,9 @@ static void draw_battery_fill(lv_obj_t *canvas, uint8_t level) {
         fill_h = FILL_H_MAX;
     }
     if (fill_h == 0) {
-        fill_h = 1; /* 非 0 至少显示 1 行 */
+        fill_h = 1;
     }
 
-    /* 从 mask 底部取 fill_h 行 */
     int skip_rows = FILL_H_MAX - fill_h;
     const uint8_t *src = (const uint8_t *)battery_mask.data;
 
@@ -100,7 +100,17 @@ static void draw_battery_charging(lv_obj_t *canvas) {
     int bolt_x = FILL_X + (FILL_W - bolt_w) / 2;
     int bolt_y = FILL_TOP + ((FILL_BOTTOM - FILL_TOP + 1) - bolt_h) / 2;
 
-    /* bolt_large 自带白边，直接叠加，无需先挖背景 */
+    /* 先挖“闪电外接矩形 + 1px”背景色，形成紧贴闪电的描边 */
+    lv_draw_rect_dsc_t bg_dsc;
+    init_rect_dsc(&bg_dsc, LVGL_BACKGROUND);
+    lv_canvas_draw_rect(canvas,
+                        bolt_x + BOLT_BBOX_X,
+                        bolt_y + BOLT_BBOX_Y,
+                        BOLT_BBOX_W,
+                        BOLT_BBOX_H,
+                        &bg_dsc);
+
+    /* 叠加透明闪电 */
     lv_draw_img_dsc_t img_dsc;
     lv_draw_img_dsc_init(&img_dsc);
     lv_canvas_draw_img(canvas, bolt_x, bolt_y, &bolt_large, &img_dsc);
