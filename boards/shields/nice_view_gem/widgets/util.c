@@ -1,3 +1,4 @@
+// boards/shields/nice_view_gem/widgets/util.c
 #include <zephyr/kernel.h>
 #include "util.h"
 #include <ctype.h>
@@ -24,10 +25,9 @@ void rotate_canvas(lv_obj_t *canvas, lv_color_t cbuf[]) {
 }
 
 void fill_background(lv_obj_t *canvas) {
-    lv_draw_rect_dsc_t rect_black_dsc;
-    init_rect_dsc(&rect_black_dsc, LVGL_BACKGROUND);
-
-    lv_canvas_draw_rect(canvas, 0, 0, BUFFER_SIZE, BUFFER_SIZE, &rect_black_dsc);
+    lv_draw_rect_dsc_t rect_dsc;
+    init_rect_dsc(&rect_dsc, LVGL_BACKGROUND);
+    lv_canvas_draw_rect(canvas, 0, 0, SCREEN_CANVAS_W, SCREEN_CANVAS_H, &rect_dsc);
 }
 
 void init_label_dsc(lv_draw_label_dsc_t *label_dsc, lv_color_t color, const lv_font_t *font,
