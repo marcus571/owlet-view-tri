@@ -2,10 +2,8 @@
 /*
  * screen.c — 单 canvas 160×68 三栏布局调度
  *
- * 2026-11-08 清理版：
- *   - 恢复真实电量读取
- *   - 移除 profile.h 引用，移除未使用的 label
- *   - 初始化状态同步使用真实数据
+ * 2026-11-09 更新：
+ *   - 增加电量 UI 映射逻辑：>= 95% 时强制显示为 100%
  */
 
 #include <zephyr/kernel.h>
@@ -73,8 +71,16 @@ static void battery_status_update_cb(struct battery_status_state state) {
 
 static struct battery_status_state battery_status_get_state(const zmk_event_t *eh) {
     const struct zmk_battery_state_changed *ev = as_zmk_battery_state_changed(eh);
+    
+    uint8_t level = (ev != NULL) ? ev->state_of_charge : zmk_battery_state_of_charge();
+    
+    /* MAX17048 充满时通常停留在 95%~99%，映射为 100% 以满足强迫症 */
+    if (level >= 95) {
+        level = 100;
+    }
+
     return (struct battery_status_state){
-        .level = (ev != NULL) ? ev->state_of_charge : zmk_battery_state_of_charge(),
+        .level = level,
 #if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
         .usb_present = zmk_usb_is_powered(),
 #endif
@@ -165,7 +171,11 @@ int zmk_widget_screen_init(struct zmk_widget_screen *widget, lv_obj_t *parent) {
     widget_output_status_init();
 
     struct status_state initial_state = {0};
-    initial_state.battery = zmk_battery_state_of_charge();
+    
+    // 初始化时也应用映射逻辑
+    uint8_t init_level = zmk_battery_state_of_charge();
+    initial_state.battery = (init_level >= 95) ? 100 : init_level;
+    
     initial_state.layer_index = zmk_keymap_highest_layer_active();
     initial_state.layer_mask = (1U << zmk_keymap_layer_default()) | (1U << initial_state.layer_index);
     draw_all(widget->obj, &initial_state);
